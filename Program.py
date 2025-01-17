@@ -11,13 +11,24 @@ clock = pg.time.Clock()
 screen = pg.display.set_mode((1920,1080))
 pg.display.set_caption("Blackjack")
 
-clubs = []
-hearts = []
-diamonds = []
-spades = []
+# Card class, with a suit from (1,5) and a number from (1,14)
+class Card:
+    def __init__ (self, suit, number):
+        self.suit = int(suit)
+        self.number = int(number)
+# Deck class, you get a Card, with a random suit from (1,5) and a random number from (1,14)
+class Deck:
+      def __init__(self):
+            self.cards = [Card(suit, number) for suit in range(1,5) for number in range (1,14)]*6
 
+# Filling the background with a image from the net.
+background = pg.image.load(f'images/background.png')
+background = pg.transform.scale(background, (1920,1080))
+
+# Game loop
 while True:
-    screen.fill("black")
+    screen.blit(background,(0,0))
+
     events = pg.event.get()
     for event in events:
 
