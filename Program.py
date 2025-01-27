@@ -6,6 +6,7 @@ import random
 # Setup
 pg.init()
 clock = pg.time.Clock()
+pg.display.set_caption("Blackjack")
 
 # Setting the screen up
 screen = pg.display.set_mode((1920,1080))
@@ -57,10 +58,17 @@ deck.shuffle()
 player_hand = []
 dealer_hand = []
 
+dealer_card_dealt = False
+player_card_dealt = False
+
 click_pos = (0,0)
 
+BLACK = (00,64,00)
+
+running = True
+
 # Game loop
-while True:
+while running:
 
     # if stand:
     #   dealer += card
@@ -94,10 +102,8 @@ while True:
     #   elif stand:
     #       continue stand
 
-
-
-    
-    
+    screen.blit(background,(0,0)) 
+     
 
     events = pg.event.get()
     for event in events:
@@ -110,21 +116,45 @@ while True:
         elif event.type == pg.KEYDOWN:
 
             if event.key == pg.K_ESCAPE:
-                        running = False
-                        pg.quit()
-
-            elif event.type == pg.MOUSEBUTTONDOWN:
-                click_pos = event.pos
-            
+                running = False
+                pg.quit()
+    
             # Deal a card to the player on pressing "H" (Hit)
             elif event.key == pg.K_h:  # "H" for Hit
                 if len(deck.cards) > 0:
                     player_hand.append(deck.deal())
 
-    screen.blit(background,(0,0))   
+
+        elif event.type == pg.MOUSEBUTTONDOWN:
+            click_pos = event.pos
+
+            
+
+    if not running:
+        break
+
+    start = pg.draw.rect(screen, BLACK, (800,150,300,100),0) 
+
+    # Button to start the game
+    if start.collidepoint(click_pos):
+        click_pos = (0,0)
+        
+        if len(player_hand) == 0 and not player_card_dealt:
+            player_hand.append(deck.deal())
+            player_card_dealt = True 
+
+        # Check if the dealer needs a card (only when the player's first card is dealt)
+        if len(player_hand) == 1 and not dealer_card_dealt:
+            dealer_hand.append(deck.deal())
+            dealer_card_dealt = True  # Set the flag to True so it doesn't deal again 
 
      # Draw player cards
     for i, card in enumerate(player_hand):
-        screen.blit(card.image, (1750/2 + i*120, 750))  # Position cards in a row
+        screen.blit(card.image, (1650/2 + i*120, 750))  # Position cards in a row
 
+     # Draw dealer cards
+    for i, card in enumerate(dealer_hand):
+        screen.blit(card.image, (1500/2 + i*120, 300))  # Position cards in a row
+    
+     
     pg.display.flip()
