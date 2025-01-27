@@ -67,10 +67,10 @@ while True:
     #   if dealer_deck > 21:
     #       print("Player won")
     #       break
-    #   elif dealer_deck < 17 and > 21 and player_deck > dealer_deck:
+    #   elif dealer_deck >= 17 and <= 21 and player_deck < dealer_deck:
     #       print("Dealer won")
     #       break
-    #   elif dealer_deck < 17 and > 21 and player_deck < dealer_deck: 
+    #   elif dealer_deck >= 17 and <= 21 and player_deck > dealer_deck: 
     #       print("Player won")
     #       break
 
@@ -80,14 +80,14 @@ while True:
     #       print("Busted... Dealer won")
     #       break
     #
-    #   elif player_deck < 17 and > 21 and stand:
+    #   elif player_deck >= 17 and <= 21 and stand:
     #       dealer += card
     #
     #       if dealer_deck > 21:
     #           print("Player won")
     #           break
     #
-    #       elif dealer_deck > 17 and < 21 and player_deck < dealer_deck:
+    #       elif dealer_deck >= 17 and <= 21 and player_deck < dealer_deck:
     #           print("Dealer won")
     #           break
     #
