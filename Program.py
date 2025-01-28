@@ -1,6 +1,7 @@
 import pygame as pg
 import random
 
+
 # Overvejer at lave Blackjack - Du har en hand og spiller mod dealer
 
 # Setup
@@ -134,6 +135,11 @@ while running:
         break
 
     start = pg.draw.rect(screen, BLACK, (800,150,300,100),0) 
+    pg.font.init()
+    start_font = pg.font.SysFont("Comic Sans Ms",110)
+    start_surface = start_font.render("Start", False, (0,0,0))
+    screen.blit(start_surface, (800,120))
+    
 
     # Button to start the game
     if start.collidepoint(click_pos):
