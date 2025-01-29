@@ -1,5 +1,6 @@
 import pygame as pg
 import random
+import time
 
 
 # Overvejer at lave Blackjack - Du har en hand og spiller mod dealer
@@ -20,6 +21,8 @@ class Card:
         self.number = int(number)
         self.image = pg.image.load(f'images/{self.suit}_{self.number}.png')
         self.image = pg.transform.scale(self.image, (125, 175))  # Scale to a suitable size
+        self.back_image = pg.image.load(f"images/card_back.png")
+        self.back_image = pg.transform.scale(self.back_image, (125, 175))  
 
 # Deck class, you get a Card, with a random suit from (1,5) and a random number from (1,14)
 class Deck:
@@ -61,11 +64,14 @@ dealer_hand = []
 
 dealer_card_dealt = False
 player_card_dealt = False
+dealer_card_dealt_time = None
+player_card_dealt_time = None
+dealer_reveal = False
 
 click_pos = (0,0)
-
+tick = 0
 BLACK = (00,64,00)
-
+fjern = 0
 running = True
 
 # Game loop
@@ -127,40 +133,61 @@ while running:
 
 
         elif event.type == pg.MOUSEBUTTONDOWN:
-            click_pos = event.pos
-
-            
+            click_pos = event.pos     
 
     if not running:
         break
-
-    start = pg.draw.rect(screen, BLACK, (800,150,300,100),0) 
-    pg.font.init()
-    start_font = pg.font.SysFont("Comic Sans Ms",110)
-    start_surface = start_font.render("Start", False, (0,0,0))
-    screen.blit(start_surface, (800,120))
+    if fjern < 1:
+        start = pg.draw.rect(screen, BLACK, (800,150,300,100),0) 
+        pg.font.init()
+        start_font = pg.font.SysFont("Comic Sans Ms",110)
+        start_surface = start_font.render("Start", False, (0,0,0))
+        screen.blit(start_surface, (800,120))
     
 
     # Button to start the game
     if start.collidepoint(click_pos):
         click_pos = (0,0)
+        fjern += 1
         
         if len(player_hand) == 0 and not player_card_dealt:
             player_hand.append(deck.deal())
             player_card_dealt = True 
+            dealer_card_dealt_time = pg.time.get_ticks()
 
-        # Check if the dealer needs a card (only when the player's first card is dealt)
-        if len(player_hand) == 1 and not dealer_card_dealt:
+    # Check if the dealer needs a card (only when the player's first card is dealt)
+    if dealer_card_dealt_time and not dealer_card_dealt:
+        if pg.time.get_ticks() - dealer_card_dealt_time >= 2000:
             dealer_hand.append(deck.deal())
             dealer_card_dealt = True  # Set the flag to True so it doesn't deal again 
+            player_card_dealt_time = pg.time.get_ticks()
 
-     # Draw player cards
+    if player_card_dealt_time and player_card_dealt == True:
+        if pg.time.get_ticks() - player_card_dealt_time >= 2000:
+            player_hand.append(deck.deal())
+            player_card_dealt = False
+            dealer_card_dealt_time = pg.time.get_ticks()
+
+    if len(player_hand) == 2 and len(dealer_hand) == 1:
+        if pg.time.get_ticks() - dealer_card_dealt_time >=2000:
+            dealer_hand.append(deck.deal())
+            dealer_card_dealt = True
+
+    # Draw player cards
     for i, card in enumerate(player_hand):
         screen.blit(card.image, (1650/2 + i*120, 750))  # Position cards in a row
 
      # Draw dealer cards
     for i, card in enumerate(dealer_hand):
-        screen.blit(card.image, (1500/2 + i*120, 300))  # Position cards in a row
+        if i == 0 and not dealer_reveal:
+            # Show card back for the first dealer card
+            screen.blit(card.back_image, (1500/2 + i*120, 300))
+        else:
+            # Show the front image for all other dealer cards
+            screen.blit(card.image, (1500/2 + i*120, 300))
     
+    # Limit/fix frame rate (fps)
+    clock.tick(30)
+    tick += 1
      
     pg.display.flip()
