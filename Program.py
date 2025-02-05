@@ -205,22 +205,31 @@ while running:
         for i, card in enumerate(dealer_hand.cards):
             screen.blit(card.image, (1650/2 + i*120, 300))
             pg.font.init()
+            if dealer_hand.totalValue() < 17:
+                for i in range(1):
+                    dealer_hand.add_card(deck.deal())
+                    if dealer_hand.totalValue() > 17 or dealer_hand.totalValue() < 21:
+                        continue
+
     if player_hit == True:
         for i in range(1):
             player_hand.add_card(deck.deal())
             player_hit = False
-                
+
     # Display player's hand value
     pg.font.init()
     font = pg.font.SysFont("Comic Sans MS", 50)
     hand_value_text = font.render(f"Player: {player_hand.totalValue()}", True, (255, 255, 255))
-    screen.blit(hand_value_text, (200, 700))  # Adjust position as needed
+    screen.blit(hand_value_text, (200, 700)) 
 
     # Display dealer's hand value (if showing cards)
     if dealer_show:
         dealer_value_text = font.render(f"Dealer: {dealer_hand.totalValue()}", True, (255, 255, 255))
-        screen.blit(dealer_value_text, (200, 100))  # Adjust position as needed
+        screen.blit(dealer_value_text, (200, 100)) 
        
+    if player_hand.totalValue() > 21:
+        print("Du tabte")
+        break
 
     # Limit/fix frame rate (fps)
     clock.tick(30)
