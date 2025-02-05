@@ -38,16 +38,33 @@ class Deck:
         return self.cards.pop()
     
 class Hand:
-    def __init__(self, cards):
-        self.cards = cards
+    def __init__(self):
+        self.cards = []  # Store the cards in a list
+
+    def add_card(self, card):
+        """Add a card to the hand."""
+        self.cards.append(card)
 
     def totalValue(self):
-      self.handValue = 0
-      for card in self.cards:
-        if card.number > 10:
-          self.handValue += 10
-        else:
-          self.handValue += card.number
+        """Calculate the total value of the hand."""
+        total = 0
+        aces = 0
+
+        for card in self.cards:
+            if card.number > 10:
+                total += 10  # Face cards are worth 10
+            elif card.number == 1:
+                aces += 1
+                total += 11  # Assume Ace is 11 first
+            else:
+                total += card.number  # Numbered cards keep their values
+
+        # Adjust for Aces if total > 21
+        while total > 21 and aces:
+            total -= 10  # Convert an Ace from 11 to 1
+            aces -= 1
+
+        return total
 
 
 # Filling the background with a image from the net.
@@ -59,58 +76,30 @@ deck = Deck()
 deck.shuffle()
 
 # Player and dealer hands
-player_hand = []
-dealer_hand = []
+player_hand = Hand()
+dealer_hand = Hand()
 
 dealer_card_dealt = False
 player_card_dealt = False
 dealer_card_dealt_time = None
 player_card_dealt_time = None
 dealer_reveal = False
+dealer_show = False
+button_show = False
+player_hit = False
 
 click_pos = (0,0)
 tick = 0
-BLACK = (00,64,00)
+DarkGreen = (00,64,00)
+LightGreen = (52,161,99)
 fjern = 0
 running = True
 
 # Game loop
 while running:
 
-    # if stand:
-    #   dealer += card
-    #   if dealer_deck > 21:
-    #       print("Player won")
-    #       break
-    #   elif dealer_deck >= 17 and <= 21 and player_deck < dealer_deck:
-    #       print("Dealer won")
-    #       break
-    #   elif dealer_deck >= 17 and <= 21 and player_deck > dealer_deck: 
-    #       print("Player won")
-    #       break
-
-    # if hit:
-    #   player += card
-    #   if player_deck > 21:
-    #       print("Busted... Dealer won")
-    #       break
-    #
-    #   elif player_deck >= 17 and <= 21 and stand:
-    #       dealer += card
-    #
-    #       if dealer_deck > 21:
-    #           print("Player won")
-    #           break
-    #
-    #       elif dealer_deck >= 17 and <= 21 and player_deck < dealer_deck:
-    #           print("Dealer won")
-    #           break
-    #
-    #   elif stand:
-    #       continue stand
-
     screen.blit(background,(0,0)) 
-     
+    
 
     events = pg.event.get()
     for event in events:
@@ -129,7 +118,7 @@ while running:
             # Deal a card to the player on pressing "H" (Hit)
             elif event.key == pg.K_h:  # "H" for Hit
                 if len(deck.cards) > 0:
-                    player_hand.append(deck.deal())
+                    player_hand.add_card(deck.deal())
 
 
         elif event.type == pg.MOUSEBUTTONDOWN:
@@ -138,7 +127,7 @@ while running:
     if not running:
         break
     if fjern < 1:
-        start = pg.draw.rect(screen, BLACK, (800,150,300,100),0) 
+        start = pg.draw.rect(screen, DarkGreen, (800,150,300,100),0) 
         pg.font.init()
         start_font = pg.font.SysFont("Comic Sans Ms",110)
         start_surface = start_font.render("Start", False, (0,0,0))
@@ -148,44 +137,91 @@ while running:
     # Button to start the game
     if start.collidepoint(click_pos):
         click_pos = (0,0)
+        # Tilføjer +1 på fjern, for at fjerne if-statementet (if fjern)
         fjern += 1
         
-        if len(player_hand) == 0 and not player_card_dealt:
-            player_hand.append(deck.deal())
+        if len(player_hand.cards) == 0 and not player_card_dealt:
+            player_hand.add_card(deck.deal())
             player_card_dealt = True 
             dealer_card_dealt_time = pg.time.get_ticks()
 
     # Check if the dealer needs a card (only when the player's first card is dealt)
     if dealer_card_dealt_time and not dealer_card_dealt:
-        if pg.time.get_ticks() - dealer_card_dealt_time >= 2000:
-            dealer_hand.append(deck.deal())
+        if pg.time.get_ticks() - dealer_card_dealt_time >= 1000:
+            dealer_hand.add_card(deck.deal())
             dealer_card_dealt = True  # Set the flag to True so it doesn't deal again 
             player_card_dealt_time = pg.time.get_ticks()
 
     if player_card_dealt_time and player_card_dealt == True:
-        if pg.time.get_ticks() - player_card_dealt_time >= 2000:
-            player_hand.append(deck.deal())
+        if pg.time.get_ticks() - player_card_dealt_time >= 1000:
+            player_hand.add_card(deck.deal())
             player_card_dealt = False
             dealer_card_dealt_time = pg.time.get_ticks()
 
-    if len(player_hand) == 2 and len(dealer_hand) == 1:
-        if pg.time.get_ticks() - dealer_card_dealt_time >=2000:
-            dealer_hand.append(deck.deal())
+    if len(player_hand.cards) == 2 and len(dealer_hand.cards) == 1:
+        if pg.time.get_ticks() - dealer_card_dealt_time >=1000:
+            dealer_hand.add_card(deck.deal())
             dealer_card_dealt = True
-
+            stand_button_time = pg.time.get_ticks()
+            print("Player's hand value:", player_hand.totalValue())
+            
+    
     # Draw player cards
-    for i, card in enumerate(player_hand):
+    for i, card in enumerate(player_hand.cards):
         screen.blit(card.image, (1650/2 + i*120, 750))  # Position cards in a row
 
-     # Draw dealer cards
-    for i, card in enumerate(dealer_hand):
+    # Draw dealer cards
+    for i, card in enumerate(dealer_hand.cards):
         if i == 0 and not dealer_reveal:
             # Show card back for the first dealer card
-            screen.blit(card.back_image, (1500/2 + i*120, 300))
+            screen.blit(card.back_image, (1650/2 + i*120, 300))
         else:
             # Show the front image for all other dealer cards
-            screen.blit(card.image, (1500/2 + i*120, 300))
-    
+            screen.blit(card.image, (1650/2 + i*120, 300))
+
+    if len(dealer_hand.cards) == 2 and fjern == 1:
+        stand = pg.draw.rect(screen, LightGreen, (1200,833,150,54),0)
+        pg.font.init()
+        stand_font = pg.font.SysFont("Comic Sans Ms",49)
+        stand_surface = stand_font.render("Stand", False, (0,0,0))
+        screen.blit(stand_surface, (1200,820))
+        hit = pg.draw.rect(screen, LightGreen, (500,833,150,54),0)
+        pg.font.init() 
+        hit_font = pg.font.SysFont("Comic Sans Ms",49)
+        hit_surface = hit_font.render("Hit", False, (0,0,0))
+        screen.blit(hit_surface, (500,820))
+        button_show = True
+
+    if button_show == True:
+        if stand.collidepoint(click_pos):
+            click_pos = (0,0)
+            dealer_show = True
+            fjern += 1
+        elif hit.collidepoint(click_pos):
+            click_pos = (0,0)
+            player_hit = True
+        
+    if dealer_show == True:
+        for i, card in enumerate(dealer_hand.cards):
+            screen.blit(card.image, (1650/2 + i*120, 300))
+            pg.font.init()
+    if player_hit == True:
+        for i in range(1):
+            player_hand.add_card(deck.deal())
+            player_hit = False
+                
+    # Display player's hand value
+    pg.font.init()
+    font = pg.font.SysFont("Comic Sans MS", 50)
+    hand_value_text = font.render(f"Player: {player_hand.totalValue()}", True, (255, 255, 255))
+    screen.blit(hand_value_text, (200, 700))  # Adjust position as needed
+
+    # Display dealer's hand value (if showing cards)
+    if dealer_show:
+        dealer_value_text = font.render(f"Dealer: {dealer_hand.totalValue()}", True, (255, 255, 255))
+        screen.blit(dealer_value_text, (200, 100))  # Adjust position as needed
+       
+
     # Limit/fix frame rate (fps)
     clock.tick(30)
     tick += 1
