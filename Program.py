@@ -8,7 +8,6 @@ import time
 # Setup
 pg.init()
 clock = pg.time.Clock()
-pg.display.set_caption("Blackjack")
 
 # Setting the screen up
 screen = pg.display.set_mode((1920,1080))
@@ -65,7 +64,21 @@ class Hand:
             aces -= 1
 
         return total
+    
+    def resetting(self):
+        self.cards = []
 
+yippee_image = []
+for i in range(49):
+    sejr = pg.image.load(f"images/GIF/17d2abd5-25ea-4925-80e8-450c6478e8f6-{i}.png")
+    sejr = pg.transform.scale(sejr, (400,400))
+    yippee_image.append(sejr)
+
+angry_image = []
+for i in range(49):
+    tab = pg.image.load(f"images/GIF/d14b2dee-0143-45eb-ba8f-d882bd2e3bcd-{i}.png")
+    tab = pg.transform.scale(tab, (400,400))
+    angry_image.append(tab)
 
 # Filling the background with a image from the net.
 background = pg.image.load(f'images/background.png')
@@ -94,6 +107,7 @@ DarkGreen = (00,64,00)
 LightGreen = (52,161,99)
 fjern = 0
 running = True
+lost_win = False
 
 # Game loop
 while running:
@@ -226,10 +240,43 @@ while running:
     if dealer_show:
         dealer_value_text = font.render(f"Dealer: {dealer_hand.totalValue()}", True, (255, 255, 255))
         screen.blit(dealer_value_text, (200, 100)) 
-       
-    if player_hand.totalValue() > 21:
-        print("Du tabte")
-        break
+ 
+    if player_hand.totalValue() > 21:  # Player busts
+        lost_win = True
+        r = int(tick/2) % 49
+        screen.blit(angry_image[r], (760,340))
+    elif dealer_hand.totalValue() > 21:  # Dealer busts
+        lost_win = True
+        r = int(tick/2) % 49
+        screen.blit(yippee_image[r], (760,340))
+    elif dealer_hand.totalValue() >= 17:  # Dealer has finished playing (assuming dealer must stand at 17)
+        lost_win = True
+    elif player_hand.totalValue() >= 21:  # Player reaches 21 (Blackjack or exact 21)
+        lost_win = True
+
+    if lost_win == True:
+        reset = pg.draw.rect(screen, DarkGreen, (1400,150,200,75),0)
+        pg.font.init()
+        reset_font = pg.font.SysFont("Comic Sans Ms",49)
+        reset_surface = reset_font.render("Reset", False, (0,0,0))
+        screen.blit(reset_surface, (1400,150))
+        if reset.collidepoint(click_pos):
+            click_pos = (0,0)
+            dealer_reveal = False
+            dealer_show = False
+            button_show = False
+            player_hit = False
+            dealer_card_dealt = False
+            player_card_dealt = False
+            dealer_card_dealt_time = None
+            player_card_dealt_time = None
+            screen.blit(background,(0,0))
+            fjern = 0
+            dealer_hand.cards.clear()
+            player_hand.cards.clear()
+            print(dealer_hand.cards, player_hand.cards)
+            
+
 
     # Limit/fix frame rate (fps)
     clock.tick(30)
