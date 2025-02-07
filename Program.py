@@ -80,6 +80,12 @@ for i in range(49):
     tab = pg.transform.scale(tab, (400,400))
     angry_image.append(tab)
 
+draw_image = []
+for i in range(14):
+    draw = pg.image.load(f"images/GIF/5d1636c7-3ce8-4545-8ba1-4e31a0974ad8-{i}.png")
+    draw = pg.transform.scale(draw, (400,400))
+    draw_image.append(draw)
+
 # Filling the background with a image from the net.
 background = pg.image.load(f'images/background.png')
 background = pg.transform.scale(background, (1920,1080))
@@ -100,6 +106,8 @@ dealer_reveal = False
 dealer_show = False
 button_show = False
 player_hit = False
+lost = False
+win = False
 
 click_pos = (0,0)
 tick = 0
@@ -113,7 +121,7 @@ lost_win = False
 while running:
 
     screen.blit(background,(0,0)) 
-    
+
 
     events = pg.event.get()
     for event in events:
@@ -219,11 +227,11 @@ while running:
         for i, card in enumerate(dealer_hand.cards):
             screen.blit(card.image, (1650/2 + i*120, 300))
             pg.font.init()
-            if dealer_hand.totalValue() < 17:
-                for i in range(1):
-                    dealer_hand.add_card(deck.deal())
-                    if dealer_hand.totalValue() > 17 or dealer_hand.totalValue() < 21:
-                        continue
+        if dealer_hand.totalValue() < 17:
+            for i in range(1):
+                dealer_hand.add_card(deck.deal())
+                if dealer_hand.totalValue() > 17 or dealer_hand.totalValue() < 21:
+                    continue
 
     if player_hit == True:
         for i in range(1):
@@ -241,18 +249,42 @@ while running:
         dealer_value_text = font.render(f"Dealer: {dealer_hand.totalValue()}", True, (255, 255, 255))
         screen.blit(dealer_value_text, (200, 100)) 
  
-    if player_hand.totalValue() > 21:  # Player busts
+
+    if player_hand.totalValue() >= 22:  # Player busts instantly
+        lost = True
+    elif dealer_hand.totalValue() >= 22:  # Dealer busts
+        win = True
+    elif player_hand.totalValue() == 21 and len(player_hand.cards) == 2:  # Player Blackjack (win instantly)
+        dealer_show = True
+        win = True
+
+    # Check for game results when Stand is pressed
+    if dealer_show == True:
+        if dealer_hand.totalValue() >= 17 and player_hand.totalValue() <= 21:  # Dealer stands
+            if dealer_hand.totalValue() > player_hand.totalValue():  # Dealer wins by higher value
+                lost = True
+            elif dealer_hand.totalValue() < player_hand.totalValue():  # Player wins by higher value
+                win = True
+            else:  # If values are the same, it's a draw
+                draw = True
+        else:
+            lost = True
+        
+
+    if win == True:
         lost_win = True
         r = int(tick/2) % 49
-        screen.blit(angry_image[r], (760,340))
-    elif dealer_hand.totalValue() > 21:  # Dealer busts
+        screen.blit(yippee_image[r], (200,240))
+    elif lost == True:
         lost_win = True
         r = int(tick/2) % 49
-        screen.blit(yippee_image[r], (760,340))
-    elif dealer_hand.totalValue() >= 17:  # Dealer has finished playing (assuming dealer must stand at 17)
+        screen.blit(angry_image[r], (200,240))
+        dealer_show = True
+    elif draw == True:
         lost_win = True
-    elif player_hand.totalValue() >= 21:  # Player reaches 21 (Blackjack or exact 21)
-        lost_win = True
+        r = int(tick/2) % 14
+        screen.blit(draw_image[r], (200,240))
+
 
     if lost_win == True:
         reset = pg.draw.rect(screen, DarkGreen, (1400,150,200,75),0)
@@ -270,6 +302,9 @@ while running:
             player_card_dealt = False
             dealer_card_dealt_time = None
             player_card_dealt_time = None
+            win = False
+            lost = False
+            draw = False
             screen.blit(background,(0,0))
             fjern = 0
             dealer_hand.cards.clear()
