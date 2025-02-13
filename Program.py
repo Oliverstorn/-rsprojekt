@@ -3,8 +3,6 @@ import random
 import time
 
 
-# Overvejer at lave Blackjack - Du har en hand og spiller mod dealer
-
 # Setup
 pg.init()
 clock = pg.time.Clock()
@@ -97,17 +95,22 @@ deck.shuffle()
 # Player and dealer hands
 player_hand = Hand()
 dealer_hand = Hand()
+split_hand = None # New hand for split
 
 dealer_card_dealt = False
 player_card_dealt = False
 dealer_card_dealt_time = None
 player_card_dealt_time = None
+dealer_draw_time = None
 dealer_reveal = False
 dealer_show = False
 button_show = False
 player_hit = False
 lost = False
 win = False
+split_active = False
+split_deal = False
+player_dealt = False
 
 click_pos = (0,0)
 tick = 0
@@ -121,6 +124,36 @@ lost_win = False
 while running:
 
     screen.blit(background,(0,0)) 
+
+    # When there is 2 cards dealt, and the last and second last (-1) and (-2) with .number is equal draw split square
+    #if len(player_hand.cards) == 2 and player_hand.cards[0].number == player_hand.cards[1].number:
+    split = pg.draw.rect(screen, LightGreen, (875,650,150,54),0)
+    if split.collidepoint(click_pos):
+        click_pos = (0,0)
+        split_active = True
+        split_hand = Hand()
+        split_hand.add_card(player_hand.cards.pop())
+        player_hand.add_card(deck.deal())
+        split_hand.add_card(deck.deal())
+
+    if split_active:
+        if hit.collidepoint(click_pos) and player_dealt == False:
+            for i in range(1):
+                player_hit = True
+                click_pos = (0,0)
+        if split_deal == True and hit.collidepoint(click_pos):
+            for i in range(1):
+                split_hand.add_card(deck.deal())
+                click_pos = (0,0)
+        if stand.collidepoint(click_pos):
+            click_pos = (0,0)
+            if not split_deal:
+                split_deal = True
+                player_dealt = True
+            else:
+                dealer_show = True
+                fjern +=1
+                dealer_draw_time = pg.time.get_ticks()
 
 
     events = pg.event.get()
@@ -150,7 +183,6 @@ while running:
         break
     if fjern < 1:
         start = pg.draw.rect(screen, DarkGreen, (800,150,300,100),0) 
-        pg.font.init()
         start_font = pg.font.SysFont("Comic Sans Ms",110)
         start_surface = start_font.render("Start", False, (0,0,0))
         screen.blit(start_surface, (800,120))
@@ -190,7 +222,12 @@ while running:
     
     # Draw player cards
     for i, card in enumerate(player_hand.cards):
-        screen.blit(card.image, (1650/2 + i*120, 750))  # Position cards in a row
+        x_offset = 550 + i * 120 if split_active else 825 + i * 120
+        screen.blit(card.image, (x_offset, 750))
+    
+    if split_active:
+        for i, card in enumerate(split_hand.cards):
+            screen.blit(card.image, (1050 + i * 120, 750))
 
     # Draw dealer cards
     for i, card in enumerate(dealer_hand.cards):
@@ -202,47 +239,54 @@ while running:
             screen.blit(card.image, (1650/2 + i*120, 300))
 
     if len(dealer_hand.cards) == 2 and fjern == 1:
-        stand = pg.draw.rect(screen, LightGreen, (1200,833,150,54),0)
-        pg.font.init()
+        stand = pg.draw.rect(screen, LightGreen, (1300,833,150,54),0)
         stand_font = pg.font.SysFont("Comic Sans Ms",49)
         stand_surface = stand_font.render("Stand", False, (0,0,0))
-        screen.blit(stand_surface, (1200,820))
-        hit = pg.draw.rect(screen, LightGreen, (500,833,150,54),0)
-        pg.font.init() 
+        screen.blit(stand_surface, (1300,820))
+        hit = pg.draw.rect(screen, LightGreen, (400,833,150,54),0)
         hit_font = pg.font.SysFont("Comic Sans Ms",49)
         hit_surface = hit_font.render("Hit", False, (0,0,0))
-        screen.blit(hit_surface, (500,820))
+        screen.blit(hit_surface, (425,820))
         button_show = True
 
-    if button_show == True:
+    if button_show == True and split_active == False:
         if stand.collidepoint(click_pos):
             click_pos = (0,0)
             dealer_show = True
             fjern += 1
+            dealer_draw_time = pg.time.get_ticks()
         elif hit.collidepoint(click_pos):
             click_pos = (0,0)
             player_hit = True
         
-    if dealer_show == True:
+    if dealer_show == True:   
         for i, card in enumerate(dealer_hand.cards):
             screen.blit(card.image, (1650/2 + i*120, 300))
-            pg.font.init()
-        if dealer_hand.totalValue() < 17:
-            for i in range(1):
-                dealer_hand.add_card(deck.deal())
-                if dealer_hand.totalValue() > 17 or dealer_hand.totalValue() < 21:
-                    continue
-
+            if dealer_draw_time and pg.time.get_ticks() - dealer_card_dealt_time >=1000: 
+                if dealer_hand.totalValue() < 17:
+                    for i in range(1):
+                        dealer_hand.add_card(deck.deal())
+                        if dealer_hand.totalValue() >= 17 or dealer_hand.totalValue() <= 21:
+                            continue
+ 
     if player_hit == True:
         for i in range(1):
             player_hand.add_card(deck.deal())
             player_hit = False
 
     # Display player's hand value
-    pg.font.init()
-    font = pg.font.SysFont("Comic Sans MS", 50)
-    hand_value_text = font.render(f"Player: {player_hand.totalValue()}", True, (255, 255, 255))
-    screen.blit(hand_value_text, (200, 700)) 
+    if split_active == False:    
+        pg.font.init()
+        font = pg.font.SysFont("Comic Sans MS", 50)
+        hand_value_text = font.render(f"Player: {player_hand.totalValue()}", True, (255, 255, 255))
+        screen.blit(hand_value_text, (200, 700)) 
+    if split_active == True:
+        font = pg.font.SysFont("Comic Sans MS", 50)
+        player1_value_text = font.render(f"Left hand: {player_hand.totalValue()}", True, (255, 255, 255))
+        screen.blit(player1_value_text,(200,700))
+        font = pg.font.SysFont("Comic Sans MS", 50)
+        player2_value_text = font.render(f"Right hand: {split_hand.totalValue()}", True, (255, 255, 255))
+        screen.blit(player2_value_text, (1380,700))
 
     # Display dealer's hand value (if showing cards)
     if dealer_show:
@@ -250,16 +294,20 @@ while running:
         screen.blit(dealer_value_text, (200, 100)) 
  
 
-    if player_hand.totalValue() >= 22:  # Player busts instantly
+    if player_hand.totalValue() >= 22 and split_active == False:  # Player busts instantly
+        for i, card in enumerate(dealer_hand.cards):
+            screen.blit(card.image, (1650/2 + i*120, 300))
         lost = True
+
     elif dealer_hand.totalValue() >= 22:  # Dealer busts
         win = True
-    elif player_hand.totalValue() == 21 and len(player_hand.cards) == 2:  # Player Blackjack (win instantly)
+    elif player_hand.totalValue() == 21 and len(player_hand.cards) == 2 and split_active == False:  # Player Blackjack (win instantly)
         dealer_show = True
-        win = True
+        
 
-    # Check for game results when Stand is pressed
-    if dealer_show == True:
+    # Only process results when the dealer has finished drawing cards
+    if dealer_show and dealer_hand.totalValue() >= 17 and dealer_hand.totalValue() <= 21:
+
         if dealer_hand.totalValue() >= 17 and player_hand.totalValue() <= 21:  # Dealer stands
             if dealer_hand.totalValue() > player_hand.totalValue():  # Dealer wins by higher value
                 lost = True
@@ -269,7 +317,37 @@ while running:
                 draw = True
         else:
             lost = True
-        
+
+        if split_active:
+            left_win = False
+            right_win = False
+            left_lose = False
+            right_lose = False
+
+            # Check left hand result
+            if player_hand.totalValue() > 21:
+                left_lose = True
+            elif player_hand.totalValue() > dealer_hand.totalValue():
+                left_win = True
+            elif player_hand.totalValue() < dealer_hand.totalValue():
+                left_lose = True
+
+            # Check right hand result
+            if split_hand.totalValue() > 21:
+                right_lose = True
+            elif split_hand.totalValue() > dealer_hand.totalValue():
+                right_win = True
+            elif split_hand.totalValue() < dealer_hand.totalValue():
+                right_lose = True
+
+            # Determine final game state after both hands are resolved
+            if left_win and right_win:
+                win = True
+            elif left_lose and right_lose:
+                lost = True
+            elif (left_win and right_lose) or (right_win and left_lose):
+                draw = True  # Mixed result
+
 
     if win == True:
         lost_win = True
@@ -288,7 +366,6 @@ while running:
 
     if lost_win == True:
         reset = pg.draw.rect(screen, DarkGreen, (1400,150,200,75),0)
-        pg.font.init()
         reset_font = pg.font.SysFont("Comic Sans Ms",49)
         reset_surface = reset_font.render("Reset", False, (0,0,0))
         screen.blit(reset_surface, (1400,150))
@@ -305,10 +382,15 @@ while running:
             win = False
             lost = False
             draw = False
+            split_hit = False
+            split_active = False
+            split_deal = False
+            player_dealt = False
             screen.blit(background,(0,0))
             fjern = 0
             dealer_hand.cards.clear()
             player_hand.cards.clear()
+            split_hand.cards.clear()
             print(dealer_hand.cards, player_hand.cards)
             
 
